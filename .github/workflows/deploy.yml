@@ -1,0 +1,29 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+  # Cho phép chạy thủ công từ tab Actions trên GitHub
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
+        run: |
+          # Cấu hình Git remote trỏ đến Hugging Face Space sử dụng secrets
+          git remote add space https://huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME
+          
+          # Force push code lên Hugging Face Space sử dụng Token bảo mật
+          git push --force https://git:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main
