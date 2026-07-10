@@ -1,13 +1,17 @@
-name: Sync to Hugging Face Spaces
+name: CI/CD Pipeline (Deploy to Hugging Face & Run Pipeline)
 
 on:
   push:
     branches: [main]
-  # Cho phép chạy thủ công từ tab Actions trên GitHub
+  schedule:
+    # Chạy tự động lúc 00:00 hàng ngày (Giờ UTC, khoảng 07:00 sáng VN)
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
   deploy:
+    # Chỉ chạy deploy nếu không phải là chạy tự động định kỳ (schedule)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -27,3 +31,57 @@ jobs:
           
           # Force push code lên Hugging Face Space sử dụng Token bảo mật
           git push --force https://git:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main
+
+  run-pipeline:
+    # Chạy nếu:
+    # 1. Chạy theo lịch (schedule) - khi đó deploy bị skip
+    # 2. Hoặc khi deploy chạy thành công (đối với push hoặc workflow_dispatch)
+    needs: deploy
+    if: always() && (github.event_name == 'schedule' || needs.deploy.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pipeline steps
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_SSLMODE: ${{ secrets.DB_SSLMODE }}
+          # DB_SSLROOTCERT: ${{ secrets.DB_SSLROOTCERT }}
+        run: |
+          # Kiểm tra sự tồn tại của các bảng trong Database
+          if python -m src.db.check_db; then
+            echo "Database tables already exist. Skipping Step 1 (Init Schema) and Step 2 (Crawl)."
+          else
+            echo "Database tables do not exist. Starting initial setup (Schema & Crawl)..."
+            
+            echo "==== Step 1: Initialize/Update DB Schema ===="
+            python -m src.db.init_schema
+            
+            echo "==== Step 2: Crawl new reviews ===="
+            python run_crawler.py
+          fi
+          
+          echo "==== Step 3: Run data preprocessing ===="
+          python -m src.preprocessing.run_preprocessing
+          
+          echo "==== Step 4: Train sentiment model ===="
+          python -m src.models.train_sentiment
+          
+          echo "==== Step 5: Predict & Update labels in Database ===="
+          python -m src.models.predict
