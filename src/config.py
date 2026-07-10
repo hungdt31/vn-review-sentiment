@@ -9,6 +9,10 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+_sslmode = os.getenv("DB_SSLMODE", "disable").strip()
+if not _sslmode:
+    _sslmode = "disable"
+
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
     "port": os.getenv("DB_PORT", "5432"),
@@ -16,7 +20,7 @@ DB_CONFIG = {
     "user": os.getenv("DB_USER", "postgres"),
     "password": os.getenv("DB_PASSWORD", ""),
     # Aiven yêu cầu SSL bắt buộc -> đặt DB_SSLMODE=require trong .env
-    "sslmode": os.getenv("DB_SSLMODE", "disable"),
+    "sslmode": _sslmode,
 }
 
 # Chỉ thêm sslrootcert vào config nếu người dùng có khai báo
