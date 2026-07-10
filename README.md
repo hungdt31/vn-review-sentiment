@@ -154,6 +154,6 @@ streamlit run dashboard/app.py
 - Model baseline dùng TF-IDF + Logistic Regression để có pipeline chạy nhanh,
   end-to-end. Bạn có thể nâng cấp bằng PhoBERT embedding sau khi baseline chạy ổn.
 - **Word Cloud tiếng Việt**: font mặc định của thư viện `wordcloud` có thể không
-  hiển thị đúng dấu tiếng Việt. Nếu gặp lỗi hiển thị, tải 1 font hỗ trợ Unicode
+  hiển thị đúng dấu tiếng Việt. Nếu gặp lỗi hiển thị, tải một font hỗ trợ Unicode
   tiếng Việt (vd. Roboto, Noto Sans) và truyền đường dẫn vào tham số
   `font_path` trong hàm `make_wordcloud()` ở `dashboard/app.py`.
