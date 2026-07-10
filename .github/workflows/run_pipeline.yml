@@ -1,8 +1,10 @@
 name: Run Data Pipeline (Crawl & Train)
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["Sync to Hugging Face Spaces"]
+    types:
+      - completed
   schedule:
     # Chạy tự động lúc 00:00 hàng ngày (Giờ UTC, tức khoảng 07:00 sáng giờ Việt Nam)
     - cron: '0 0 * * *'
@@ -10,6 +12,8 @@ on:
 
 jobs:
   run-pipeline:
+    # Chỉ chạy nếu là chạy định kỳ, chạy tay, HOẶC workflow deploy trước đó thành công
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
     steps:
