@@ -1,6 +1,8 @@
 name: Run Data Pipeline (Crawl & Train)
 
 on:
+  push:
+    branches: [main]
   schedule:
     # Chạy tự động lúc 00:00 hàng ngày (Giờ UTC, tức khoảng 07:00 sáng giờ Việt Nam)
     - cron: '0 0 * * *'
